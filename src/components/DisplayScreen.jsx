@@ -4,9 +4,9 @@ import './DisplayScreen.css';
 
 const MAX_VISIBLE = 6;
 
-function CaptionBubble({ message, ageFromBottom }) {
+function CaptionBubble({ message, ageFromNewest }) {
   const isContext = message.type === MessageType.CONTEXT;
-  const opacity = Math.max(0.15, 1 - ageFromBottom * 0.18);
+  const opacity = Math.max(0.15, 1 - ageFromNewest * 0.18);
 
   return (
     <div
@@ -33,7 +33,8 @@ function WaitingScreen() {
 
 export function DisplayScreen() {
   const { messages } = useCaptionSession();
-  const visible = messages.slice(-MAX_VISIBLE);
+  // newest first: index 0 = most recent
+  const visible = messages.slice(-MAX_VISIBLE).reverse();
 
   return (
     <div className="display-screen">
@@ -45,7 +46,7 @@ export function DisplayScreen() {
             <CaptionBubble
               key={msg.id}
               message={msg}
-              ageFromBottom={visible.length - 1 - i}
+              ageFromNewest={i}
             />
           ))}
         </div>

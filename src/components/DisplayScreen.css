@@ -4,7 +4,7 @@
   height: 100vh;
   background: #000;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   overflow: hidden;
   cursor: none;
   /* Safe area for TV overscan */
@@ -56,8 +56,8 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  /* Push all messages to bottom; new ones appear at bottom */
-  justify-content: flex-end;
+  /* Newest message at top, older ones flow downward */
+  justify-content: flex-start;
   gap: 2.5vh;
 }
 
@@ -67,14 +67,14 @@
   align-items: baseline;
   gap: 0.6em;
   opacity: var(--opacity, 1);
-  /* Newest message slides up from below */
-  animation: slideUp 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* Newest message slides down from above */
+  animation: slideDown 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-@keyframes slideUp {
+@keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(2.5vh);
+    transform: translateY(-2.5vh);
   }
   to {
     opacity: var(--opacity, 1);
@@ -98,8 +98,8 @@
   word-break: keep-all;
 }
 
-/* Newest caption gets a gentle warm glow */
-.caption-bubble--caption:last-child .caption-text {
+/* Newest caption (index 0 = top) gets a gentle warm glow */
+.caption-bubble--caption:first-child .caption-text {
   color: #FFFFFF;
   text-shadow:
     0 2px 8px rgba(0, 0, 0, 0.9),
