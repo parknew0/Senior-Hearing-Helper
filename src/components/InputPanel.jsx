@@ -68,6 +68,7 @@ export function InputPanel() {
   const [mode, setMode] = useState(MessageType.CAPTION);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const textareaRef = useRef(null);
+  const isComposingRef = useRef(false);
 
   const displayUrl = `${window.location.origin}/?view=display`;
 
@@ -80,7 +81,7 @@ export function InputPanel() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
       handleSend();
     }
@@ -133,6 +134,8 @@ export function InputPanel() {
             }
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={() => { isComposingRef.current = false; }}
             onKeyDown={handleKeyDown}
             rows={2}
             autoFocus
