@@ -1,0 +1,140 @@
+/* ─── Root screen ─── */
+.display-screen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  cursor: none;
+  /* Safe area for TV overscan */
+  padding: 5vh 6vw;
+  box-sizing: border-box;
+}
+
+/* ─── Waiting state ─── */
+.waiting-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+}
+
+.waiting-logo {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+
+.waiting-icon {
+  font-size: clamp(2rem, 5vw, 6rem);
+  opacity: 0.1;
+}
+
+.waiting-name {
+  font-size: clamp(2rem, 6vw, 8rem);
+  font-weight: 900;
+  color: #111;
+  letter-spacing: -0.04em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Noto Sans KR', sans-serif;
+}
+
+.waiting-hint {
+  font-size: clamp(0.875rem, 1.5vw, 2rem);
+  color: #111;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Noto Sans KR', sans-serif;
+}
+
+/* ─── Caption feed ─── */
+.caption-feed {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Push all messages to bottom; new ones appear at bottom */
+  justify-content: flex-end;
+  gap: 2.5vh;
+}
+
+/* ─── Individual caption bubble ─── */
+.caption-bubble {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  opacity: var(--opacity, 1);
+  /* Newest message slides up from below */
+  animation: slideUp 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(2.5vh);
+  }
+  to {
+    opacity: var(--opacity, 1);
+    transform: translateY(0);
+  }
+}
+
+/* ─── Caption type: regular speech ─── */
+.caption-bubble--caption .caption-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-size: clamp(2.5rem, 7.5vw, 130px);
+  font-weight: 800;
+  color: #F8FAFC;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  /* Hard drop-shadow so text pops on any background */
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.9),
+    0 0 40px rgba(0, 0, 0, 0.6);
+  word-break: keep-all;
+}
+
+/* Newest caption gets a gentle warm glow */
+.caption-bubble--caption:last-child .caption-text {
+  color: #FFFFFF;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.9),
+    0 0 60px rgba(200, 200, 255, 0.08);
+}
+
+/* ─── Caption type: context/summary note ─── */
+.caption-bubble--context {
+  gap: 0.8em;
+}
+
+.caption-bubble--context .caption-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-size: clamp(1.5rem, 3.8vw, 68px);
+  font-weight: 400;
+  font-style: italic;
+  color: #FFC85C;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.9),
+    0 0 30px rgba(255, 200, 92, 0.12);
+  word-break: keep-all;
+}
+
+.context-pin {
+  font-size: clamp(1.25rem, 3vw, 54px);
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+/* ─── Accessibility: reduce motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .caption-bubble {
+    animation: none;
+  }
+}
