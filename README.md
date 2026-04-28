@@ -15,28 +15,47 @@
 |------|------|
 | 프레임워크 | React 19 |
 | 빌드 도구 | Vite 8 |
-| 스타일 | CSS (번들러 없음) |
+| 스타일 | CSS |
 | 탭 간 통신 | BroadcastChannel API |
 
 ---
 
-## 설치 및 실행
+## 설치 및 실행 (macOS)
+
+**사전 준비: Node.js**
+
+터미널(Command + Space → '터미널')을 열고 확인하세요.
 
 ```bash
-# 1. 의존성 설치
-npm install
-
-# 2. 개발 서버 시작
-npm run dev
-
-# 3. 빌드
-npm run build
+node -v
 ```
 
-개발 서버 실행 후:
+버전이 안 뜨면 [Node.js 공식 사이트](https://nodejs.org)에서 LTS 버전을 설치하거나, nvm을 쓰고 있다면:
 
-- **입력 화면**: `http://localhost:5173/`
-- **표시 화면**: `http://localhost:5173/?view=display` (별도 탭에서 열기)
+```bash
+nvm install 24
+```
+
+**프로젝트 실행**
+
+```bash
+# 클론
+git clone https://github.com/parknew0/Senior-Hearing-Helper.git
+cd Senior-Hearing-Helper
+
+# 의존성 설치 후 실행
+npm install
+npm run dev
+```
+
+브라우저에서 열기:
+
+| 화면 | URL |
+|------|-----|
+| 입력 화면 | `http://localhost:5173/` |
+| 표시 화면 | `http://localhost:5173/?view=display` |
+
+> 표시 화면은 별도 탭에서 열어야 합니다.
 
 ---
 
@@ -45,16 +64,16 @@ npm run build
 ```
 src/
 ├── components/
-│   ├── InputPanel.jsx      # 스마트폰용 입력 UI
-│   └── DisplayScreen.jsx   # TV용 자막 표시 UI
+│   ├── InputPanel.jsx       # 스마트폰용 입력 UI
+│   └── DisplayScreen.jsx    # TV용 자막 표시 UI
 ├── hooks/
-│   └── useCaptionSession.js  # 세션 상태 관리 훅
+│   └── useCaptionSession.js # 세션 상태 관리 훅
 ├── application/
-│   └── CaptionSession.js   # 메시지 전송/구독 로직
+│   └── CaptionSession.js    # 메시지 전송/구독 로직
 ├── domain/
-│   ├── Message.js          # 메시지 모델
-│   ├── MessageType.js      # 메시지 타입 (대화 / 상황 설명)
-│   ├── MessageStore.js     # 메시지 저장소
-│   └── CaptionChannel.js   # BroadcastChannel 래퍼
-└── App.jsx                 # URL 파라미터로 화면 분기
+│   ├── Message.js           # 메시지 모델
+│   ├── MessageType.js       # 메시지 타입 (대화 / 상황 설명)
+│   ├── MessageStore.js      # 메시지 저장소
+│   └── CaptionChannel.js    # BroadcastChannel 래퍼
+└── App.jsx                  # URL 파라미터로 화면 분기
 ```
