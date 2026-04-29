@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { WebSpeechRecognizer } from '../infrastructure/WebSpeechRecognizer.js';
 
 function buildDefaultRecognizer() {
@@ -31,13 +31,21 @@ export function useLiveSpeechRecognition({
   const [interim, setInterim] = useState('');
   const [error, setError] = useState(initError);
 
+  // The onFinal callback identity changes every time the parent
+  // re-renders (which happens after every sent message). Without this
+  // ref, the bind-effect below would be torn down and re-created each
+  // time, and its cleanup — recognizer.abort() — would kill the
+  // listening session right after the first utterance.
+  const onFinalRef = useRef(onFinal);
+  useEffect(() => { onFinalRef.current = onFinal; }, [onFinal]);
+
   useEffect(() => {
     if (!recognizer) return undefined;
 
     recognizer.onInterim((text) => setInterim(text));
     recognizer.onFinal((text) => {
       setInterim('');
-      if (onFinal) onFinal(text);
+      onFinalRef.current?.(text);
     });
     recognizer.onError((err) => setError(typeof err === 'string' ? err : String(err)));
     recognizer.onEnd(() => setIsListening(false));
@@ -45,7 +53,7 @@ export function useLiveSpeechRecognition({
     return () => {
       recognizer.abort();
     };
-  }, [recognizer, onFinal]);
+  }, [recognizer]);
 
   const start = useCallback(() => {
     if (!recognizer) return;
