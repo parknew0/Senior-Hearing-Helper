@@ -17,6 +17,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
   #lang;
   #userStopped = false;
   #listening = false;
+  #restartTimer = null;
 
   #onInterim = null;
   #onFinal = null;
@@ -71,20 +72,46 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     this.#recognition.onend = () => {
       this.#listening = false;
       console.log(
-        '[WebSpeechRecognizer] end; userStopped=', this.#userStopped
+        '[WebSpeechRecognizer] session end; userStopped=', this.#userStopped
       );
       if (!this.#userStopped) {
-        // Auto-restart so brief silences don't kill the session.
-        try {
-          this.#recognition.start();
-          this.#listening = true;
-          return;
-        } catch (err) {
-          console.warn('[WebSpeechRecognizer] auto-restart failed', err);
-        }
+        // Chrome throws InvalidStateError if start() is called
+        // synchronously inside onend, so defer to the next task.
+        // We also keep retrying with backoff until either start()
+        // succeeds or the user explicitly stops.
+        this.#scheduleRestart(150);
+        return;
       }
       if (this.#onEnd) this.#onEnd();
     };
+  }
+
+  #scheduleRestart(delayMs) {
+    if (this.#userStopped) return;
+    if (this.#restartTimer != null) return; // already scheduled
+    this.#restartTimer = setTimeout(() => {
+      this.#restartTimer = null;
+      if (this.#userStopped || this.#listening) return;
+      try {
+        this.#recognition.start();
+        this.#listening = true;
+        console.log('[WebSpeechRecognizer] auto-restarted');
+      } catch (err) {
+        const next = Math.min(delayMs * 2, 2000);
+        console.warn(
+          '[WebSpeechRecognizer] auto-restart failed, retrying in', next, 'ms',
+          err?.message ?? err
+        );
+        this.#scheduleRestart(next);
+      }
+    }, delayMs);
+  }
+
+  #cancelRestart() {
+    if (this.#restartTimer != null) {
+      clearTimeout(this.#restartTimer);
+      this.#restartTimer = null;
+    }
   }
 
   get name() {
@@ -98,6 +125,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
   start() {
     if (this.#listening) return;
     this.#userStopped = false;
+    this.#cancelRestart();
     this.#recognition.start();
     this.#listening = true;
     console.log('[WebSpeechRecognizer] start; lang=', this.#lang);
@@ -105,12 +133,14 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
 
   stop() {
     this.#userStopped = true;
+    this.#cancelRestart();
     try { this.#recognition.stop(); } catch { /* ignore */ }
     this.#listening = false;
   }
 
   abort() {
     this.#userStopped = true;
+    this.#cancelRestart();
     try { this.#recognition.abort(); } catch { /* ignore */ }
     this.#listening = false;
   }
