@@ -102,11 +102,12 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
         '[WebSpeechRecognizer] session end; userStopped=', this.#userStopped
       );
       if (!this.#userStopped) {
-        // Chrome throws InvalidStateError if start() is called
-        // synchronously inside onend, so defer to the next task.
-        // We also keep retrying with backoff until either start()
-        // succeeds or the user explicitly stops.
-        this.#scheduleRestart(150);
+        // The gap between stop() and the new session reading audio is
+        // exactly the time during which the user's speech is dropped.
+        // Try to restart on the very next task (0ms) — Chrome usually
+        // accepts that. If it throws InvalidStateError, scheduleRestart
+        // backs off until it works.
+        this.#scheduleRestart(0);
         return;
       }
       if (this.#onEnd) this.#onEnd();
@@ -127,7 +128,9 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
         this.#forceFinalizing = false;
         console.log('[WebSpeechRecognizer] auto-restarted');
       } catch (err) {
-        const next = Math.min(delayMs * 2, 2000);
+        // Floor at 50ms so a 0ms initial delay still backs off
+        // instead of looping at 0.
+        const next = Math.min(Math.max(delayMs * 2, 50), 2000);
         console.warn(
           '[WebSpeechRecognizer] auto-restart failed, retrying in', next, 'ms',
           err?.message ?? err
