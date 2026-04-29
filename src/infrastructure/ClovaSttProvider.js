@@ -45,6 +45,12 @@ export class ClovaSttProvider extends SttProvider {
     }
 
     const url = `${this.#endpoint}?lang=${encodeURIComponent(this.#lang)}`;
+    console.log(
+      '[ClovaSttProvider] POST', url,
+      'bytes=', audioBlob.size,
+      'type=', audioBlob.type
+    );
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
@@ -53,6 +59,10 @@ export class ClovaSttProvider extends SttProvider {
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
+      console.error(
+        '[ClovaSttProvider] failed',
+        response.status, response.statusText, detail
+      );
       throw new Error(
         `Clova CSR ${response.status} ${response.statusText}` +
         (detail ? `: ${detail}` : '')
@@ -60,6 +70,7 @@ export class ClovaSttProvider extends SttProvider {
     }
 
     const data = await response.json();
+    console.log('[ClovaSttProvider] response', data);
     if (typeof data?.text !== 'string') {
       throw new Error(`Unexpected Clova CSR response: ${JSON.stringify(data)}`);
     }

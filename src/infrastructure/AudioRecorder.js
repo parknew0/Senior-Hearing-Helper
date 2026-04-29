@@ -15,6 +15,10 @@ export class AudioRecorder {
     'audio/webm',
   ]);
 
+  // start(timeslice) forces dataavailable events every N ms. Without
+  // this, very short recordings sometimes flush nothing on stop().
+  static TIMESLICE_MS = 500;
+
   #stream = null;
   #recorder = null;
   #chunks = [];
@@ -38,12 +42,14 @@ export class AudioRecorder {
       this.#stream,
       mimeType ? { mimeType } : undefined
     );
+    console.log('[AudioRecorder] start; mimeType=', this.#recorder.mimeType);
 
     this.#recorder.addEventListener('dataavailable', (event) => {
+      console.log('[AudioRecorder] dataavailable; size=', event.data?.size);
       if (event.data && event.data.size > 0) this.#chunks.push(event.data);
     });
 
-    this.#recorder.start();
+    this.#recorder.start(AudioRecorder.TIMESLICE_MS);
   }
 
   /**
@@ -56,19 +62,34 @@ export class AudioRecorder {
 
     const recorder = this.#recorder;
     const stream = this.#stream;
-    const chunks = this.#chunks;
-
-    this.#recorder = null;
-    this.#stream = null;
-    this.#chunks = [];
+    // We deliberately do NOT reset #chunks / #recorder / #stream here:
+    // MediaRecorder fires dataavailable AFTER stop() is invoked but
+    // BEFORE the 'stop' event. The dataavailable listener pushes into
+    // this.#chunks, so we need that array to remain the same reference
+    // until the final flush is done. Reset happens inside the 'stop'
+    // handler below.
 
     return new Promise((resolve, reject) => {
       recorder.addEventListener('stop', () => {
+        const collected = this.#chunks;
+        const mimeType = recorder.mimeType || 'audio/webm';
+        console.log(
+          '[AudioRecorder] stop; chunks=', collected.length,
+          'totalBytes=', collected.reduce((a, b) => a + b.size, 0),
+          'mimeType=', mimeType
+        );
         stream?.getTracks().forEach((track) => track.stop());
-        resolve(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }));
+        this.#recorder = null;
+        this.#stream = null;
+        this.#chunks = [];
+        resolve(new Blob(collected, { type: mimeType }));
       });
       recorder.addEventListener('error', (event) => {
+        console.error('[AudioRecorder] error', event.error ?? event);
         stream?.getTracks().forEach((track) => track.stop());
+        this.#recorder = null;
+        this.#stream = null;
+        this.#chunks = [];
         reject(event.error ?? new Error('MediaRecorder error'));
       });
       recorder.stop();

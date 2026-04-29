@@ -36,6 +36,7 @@ export function useSpeechTranscriber({ build = buildDefaultTranscriber } = {}) {
       await transcriber.startRecording();
       setIsRecording(true);
     } catch (err) {
+      console.error('[useSpeechTranscriber] startRecording failed', err);
       setError(err?.message ?? String(err));
     }
   }, [transcriber]);
@@ -49,6 +50,7 @@ export function useSpeechTranscriber({ build = buildDefaultTranscriber } = {}) {
       setLastTranscript(text);
       return text;
     } catch (err) {
+      console.error('[useSpeechTranscriber] stopAndTranscribe failed', err);
       setError(err?.message ?? String(err));
       return '';
     } finally {
