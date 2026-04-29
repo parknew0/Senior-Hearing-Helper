@@ -19,6 +19,9 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
   #listening = false;
   #restartTimer = null;
   #maxInterimChars;
+  #hardLimitChars;
+  #micropauseMs;
+  #micropauseTimer = null;
   #forceFinalizing = false;
 
   #onInterim = null;
@@ -31,7 +34,18 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
       (window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
-  constructor({ lang = 'ko-KR', maxInterimChars = 60 } = {}) {
+  constructor({
+    lang = 'ko-KR',
+    // Soft ceiling: once interim crosses this, we wait for a brief
+    // pause in updates and finalize at that "word boundary".
+    maxInterimChars = 30,
+    // Hard ceiling: a non-stop talker can grow interim past the soft
+    // ceiling indefinitely; cut anyway at this length, even mid-word.
+    hardLimitChars = 50,
+    // How long interim must stay unchanged to be considered a
+    // micropause (i.e. word boundary) once over the soft ceiling.
+    micropauseMs = 200,
+  } = {}) {
     super();
     const Ctor = WebSpeechRecognizer.isSupported();
     if (!Ctor) {
@@ -43,6 +57,8 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
 
     this.#lang = lang;
     this.#maxInterimChars = maxInterimChars;
+    this.#hardLimitChars = Math.max(hardLimitChars, maxInterimChars);
+    this.#micropauseMs = micropauseMs;
     this.#recognition = new Ctor();
     this.#recognition.lang = lang;
     this.#recognition.continuous = true;
@@ -63,16 +79,12 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
       if (interim && this.#onInterim) this.#onInterim(interim);
 
       // If the speaker keeps going without a natural pause, the
-      // interim string can balloon. Force-finalize past the threshold
-      // so the TV gets a chunk now instead of one giant block at the
-      // very end. The auto-restart loop picks listening back up.
-      if (
-        !this.#forceFinalizing &&
-        !this.#userStopped &&
-        interim.length >= this.#maxInterimChars
-      ) {
-        this.#forceFinalize();
-      }
+      // interim string can balloon. Cutting mid-word hurts the next
+      // session's recognition (the cold-start engine sees only a
+      // partial syllable), so we wait for a brief silence before
+      // calling stop(). A hard limit guards against speakers who
+      // never pause.
+      this.#maybeForceFinalize(interim);
     };
 
     this.#recognition.onerror = (event) => {
@@ -125,9 +137,41 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     }, delayMs);
   }
 
-  #forceFinalize() {
+  #maybeForceFinalize(interim) {
+    if (this.#forceFinalizing || this.#userStopped) return;
+
+    if (interim.length >= this.#hardLimitChars) {
+      // Talker never paused; cut now even though we may split a word.
+      this.#cancelMicropause();
+      this.#forceFinalize('hard limit');
+    } else if (interim.length >= this.#maxInterimChars) {
+      // Past the soft ceiling — arm the trailing-debounce timer.
+      // Each new onresult cancels and re-arms it; if interim stays
+      // unchanged for micropauseMs, the user is between words and
+      // we cut there.
+      this.#cancelMicropause();
+      this.#micropauseTimer = setTimeout(() => {
+        this.#micropauseTimer = null;
+        this.#forceFinalize('micropause');
+      }, this.#micropauseMs);
+    } else {
+      // Back below the soft ceiling (Chrome may revise interim
+      // shorter); cancel any pending cut.
+      this.#cancelMicropause();
+    }
+  }
+
+  #cancelMicropause() {
+    if (this.#micropauseTimer != null) {
+      clearTimeout(this.#micropauseTimer);
+      this.#micropauseTimer = null;
+    }
+  }
+
+  #forceFinalize(reason) {
+    if (this.#forceFinalizing || this.#userStopped) return;
     this.#forceFinalizing = true;
-    console.log('[WebSpeechRecognizer] interim too long, forcing finalize');
+    console.log(`[WebSpeechRecognizer] force-finalize (${reason})`);
     // recognition.stop() makes Chrome flush the current best guess
     // as a final result, then fire onend. userStopped stays false,
     // so the existing onend handler will auto-restart cleanly.
@@ -154,6 +198,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     this.#userStopped = false;
     this.#forceFinalizing = false;
     this.#cancelRestart();
+    this.#cancelMicropause();
     this.#recognition.start();
     this.#listening = true;
     console.log('[WebSpeechRecognizer] start; lang=', this.#lang);
@@ -163,6 +208,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     this.#userStopped = true;
     this.#forceFinalizing = false;
     this.#cancelRestart();
+    this.#cancelMicropause();
     try { this.#recognition.stop(); } catch { /* ignore */ }
     this.#listening = false;
   }
@@ -171,6 +217,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     this.#userStopped = true;
     this.#forceFinalizing = false;
     this.#cancelRestart();
+    this.#cancelMicropause();
     try { this.#recognition.abort(); } catch { /* ignore */ }
     this.#listening = false;
   }
