@@ -222,6 +222,16 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     this.#listening = false;
   }
 
+  /**
+   * User-initiated cut. The auto-restart loop picks listening back up
+   * after the engine flushes its current best guess as a final result.
+   */
+  flush() {
+    if (!this.#listening) return;
+    this.#cancelMicropause();
+    this.#forceFinalize('user');
+  }
+
   onInterim(handler) { this.#onInterim = handler; }
   onFinal(handler)   { this.#onFinal = handler; }
   onError(handler)   { this.#onError = handler; }

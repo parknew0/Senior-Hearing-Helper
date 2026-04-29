@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { MessageType } from '../../domain/MessageType.js';
 import { useLiveSpeechRecognition } from '../../hooks/useLiveSpeechRecognition.js';
 
@@ -24,8 +24,28 @@ export function LiveSttInputArea({ messageType, onSubmit }) {
     error,
     start,
     stop,
+    flush,
     clearError,
   } = useLiveSpeechRecognition({ onFinal: handleFinal });
+
+  // Spacebar = "cut here". The user can mark the boundary they hear
+  // better than the algorithm can. We don't intercept when a button
+  // or text field has focus, so native space-activates-button and
+  // typing in textareas keep working.
+  useEffect(() => {
+    if (!isListening) return undefined;
+    const onKey = (e) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      const t = e.target;
+      if (t && t.matches?.('button, input, textarea, select, [contenteditable=""], [contenteditable="true"]')) {
+        return;
+      }
+      e.preventDefault();
+      flush();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isListening, flush]);
 
   if (!isSupported) {
     return (
@@ -68,13 +88,23 @@ export function LiveSttInputArea({ messageType, onSubmit }) {
 
       <div className="stt-action-row">
         {isListening ? (
-          <button
-            type="button"
-            className="send-btn stt-btn--stop stt-btn--send"
-            onClick={stop}
-          >
-            ⏹ 듣기 중지
-          </button>
+          <>
+            <button
+              type="button"
+              className="stt-cancel"
+              onClick={flush}
+              title="여기까지를 한 문장으로 잘라 TV에 표시"
+            >
+              ✂ 여기서 끊기 <span className="stt-shortcut">Space</span>
+            </button>
+            <button
+              type="button"
+              className="send-btn stt-btn--stop stt-btn--send"
+              onClick={stop}
+            >
+              ⏹ 듣기 중지
+            </button>
+          </>
         ) : (
           <button
             type="button"

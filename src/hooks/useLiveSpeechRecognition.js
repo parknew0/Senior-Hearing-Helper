@@ -75,6 +75,10 @@ export function useLiveSpeechRecognition({
     setInterim('');
   }, [recognizer]);
 
+  const flush = useCallback(() => {
+    recognizer?.flush();
+  }, [recognizer]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -84,6 +88,7 @@ export function useLiveSpeechRecognition({
     error,
     start,
     stop,
+    flush,
     clearError,
   };
 }

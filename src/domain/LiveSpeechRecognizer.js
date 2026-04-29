@@ -10,6 +10,8 @@
 export class LiveSpeechRecognizer {
   start()       { throw new Error('LiveSpeechRecognizer.start() must be implemented'); }
   stop()        { throw new Error('LiveSpeechRecognizer.stop() must be implemented'); }
+  /** Force the engine to finalize the current interim now and resume listening. */
+  flush()       { throw new Error('LiveSpeechRecognizer.flush() must be implemented'); }
   isListening() { throw new Error('LiveSpeechRecognizer.isListening() must be implemented'); }
 
   /** @param {(text: string) => void} _handler */
