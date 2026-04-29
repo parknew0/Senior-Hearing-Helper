@@ -18,6 +18,8 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
   #userStopped = false;
   #listening = false;
   #restartTimer = null;
+  #maxInterimChars;
+  #forceFinalizing = false;
 
   #onInterim = null;
   #onFinal = null;
@@ -29,7 +31,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
       (window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
-  constructor({ lang = 'ko-KR' } = {}) {
+  constructor({ lang = 'ko-KR', maxInterimChars = 60 } = {}) {
     super();
     const Ctor = WebSpeechRecognizer.isSupported();
     if (!Ctor) {
@@ -40,6 +42,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
     }
 
     this.#lang = lang;
+    this.#maxInterimChars = maxInterimChars;
     this.#recognition = new Ctor();
     this.#recognition.lang = lang;
     this.#recognition.continuous = true;
@@ -58,6 +61,18 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
       const trimmedFinal = finals.trim();
       if (trimmedFinal && this.#onFinal) this.#onFinal(trimmedFinal);
       if (interim && this.#onInterim) this.#onInterim(interim);
+
+      // If the speaker keeps going without a natural pause, the
+      // interim string can balloon. Force-finalize past the threshold
+      // so the TV gets a chunk now instead of one giant block at the
+      // very end. The auto-restart loop picks listening back up.
+      if (
+        !this.#forceFinalizing &&
+        !this.#userStopped &&
+        interim.length >= this.#maxInterimChars
+      ) {
+        this.#forceFinalize();
+      }
     };
 
     this.#recognition.onerror = (event) => {
@@ -95,6 +110,9 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
       try {
         this.#recognition.start();
         this.#listening = true;
+        // The previous session has now fully ended and a new one
+        // started — safe to allow another forced finalization.
+        this.#forceFinalizing = false;
         console.log('[WebSpeechRecognizer] auto-restarted');
       } catch (err) {
         const next = Math.min(delayMs * 2, 2000);
@@ -105,6 +123,15 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
         this.#scheduleRestart(next);
       }
     }, delayMs);
+  }
+
+  #forceFinalize() {
+    this.#forceFinalizing = true;
+    console.log('[WebSpeechRecognizer] interim too long, forcing finalize');
+    // recognition.stop() makes Chrome flush the current best guess
+    // as a final result, then fire onend. userStopped stays false,
+    // so the existing onend handler will auto-restart cleanly.
+    try { this.#recognition.stop(); } catch { /* ignore */ }
   }
 
   #cancelRestart() {
@@ -125,6 +152,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
   start() {
     if (this.#listening) return;
     this.#userStopped = false;
+    this.#forceFinalizing = false;
     this.#cancelRestart();
     this.#recognition.start();
     this.#listening = true;
@@ -133,6 +161,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
 
   stop() {
     this.#userStopped = true;
+    this.#forceFinalizing = false;
     this.#cancelRestart();
     try { this.#recognition.stop(); } catch { /* ignore */ }
     this.#listening = false;
@@ -140,6 +169,7 @@ export class WebSpeechRecognizer extends LiveSpeechRecognizer {
 
   abort() {
     this.#userStopped = true;
+    this.#forceFinalizing = false;
     this.#cancelRestart();
     try { this.#recognition.abort(); } catch { /* ignore */ }
     this.#listening = false;
