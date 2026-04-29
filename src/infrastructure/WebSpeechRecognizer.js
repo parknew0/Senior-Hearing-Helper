@@ -1,0 +1,122 @@
+import { LiveSpeechRecognizer } from '../domain/LiveSpeechRecognizer.js';
+
+/**
+ * Adapter for the browser-native Web Speech API
+ * (window.SpeechRecognition / window.webkitSpeechRecognition).
+ *
+ * Behavior notes worth knowing:
+ *   - continuous=true keeps the engine listening across phrases.
+ *   - interimResults=true emits partial guesses while the user speaks.
+ *   - Chrome auto-stops after long silences regardless of `continuous`.
+ *     We auto-restart from the `end` handler unless the user explicitly
+ *     called stop(), so the experience is "always-on" from their side.
+ *   - Korean (ko-KR) is well-supported by Chrome's engine.
+ */
+export class WebSpeechRecognizer extends LiveSpeechRecognizer {
+  #recognition;
+  #lang;
+  #userStopped = false;
+  #listening = false;
+
+  #onInterim = null;
+  #onFinal = null;
+  #onError = null;
+  #onEnd = null;
+
+  static isSupported() {
+    return typeof window !== 'undefined' &&
+      (window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  constructor({ lang = 'ko-KR' } = {}) {
+    super();
+    const Ctor = WebSpeechRecognizer.isSupported();
+    if (!Ctor) {
+      throw new Error(
+        '이 브라우저는 실시간 음성 인식(Web Speech API)을 지원하지 않습니다. ' +
+        'Chrome 또는 Edge에서 사용해 주세요.'
+      );
+    }
+
+    this.#lang = lang;
+    this.#recognition = new Ctor();
+    this.#recognition.lang = lang;
+    this.#recognition.continuous = true;
+    this.#recognition.interimResults = true;
+    this.#recognition.maxAlternatives = 1;
+
+    this.#recognition.onresult = (event) => {
+      let interim = '';
+      let finals = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0]?.transcript ?? '';
+        if (result.isFinal) finals += transcript;
+        else interim += transcript;
+      }
+      const trimmedFinal = finals.trim();
+      if (trimmedFinal && this.#onFinal) this.#onFinal(trimmedFinal);
+      if (interim && this.#onInterim) this.#onInterim(interim);
+    };
+
+    this.#recognition.onerror = (event) => {
+      // 'no-speech' and 'aborted' are routine and don't deserve the alarm.
+      const code = event?.error;
+      console.warn('[WebSpeechRecognizer] error', code, event);
+      if (code !== 'no-speech' && code !== 'aborted' && this.#onError) {
+        this.#onError(code ?? 'unknown error');
+      }
+    };
+
+    this.#recognition.onend = () => {
+      this.#listening = false;
+      console.log(
+        '[WebSpeechRecognizer] end; userStopped=', this.#userStopped
+      );
+      if (!this.#userStopped) {
+        // Auto-restart so brief silences don't kill the session.
+        try {
+          this.#recognition.start();
+          this.#listening = true;
+          return;
+        } catch (err) {
+          console.warn('[WebSpeechRecognizer] auto-restart failed', err);
+        }
+      }
+      if (this.#onEnd) this.#onEnd();
+    };
+  }
+
+  get name() {
+    return 'Web Speech API';
+  }
+
+  isListening() {
+    return this.#listening;
+  }
+
+  start() {
+    if (this.#listening) return;
+    this.#userStopped = false;
+    this.#recognition.start();
+    this.#listening = true;
+    console.log('[WebSpeechRecognizer] start; lang=', this.#lang);
+  }
+
+  stop() {
+    this.#userStopped = true;
+    try { this.#recognition.stop(); } catch { /* ignore */ }
+    this.#listening = false;
+  }
+
+  abort() {
+    this.#userStopped = true;
+    try { this.#recognition.abort(); } catch { /* ignore */ }
+    this.#listening = false;
+  }
+
+  onInterim(handler) { this.#onInterim = handler; }
+  onFinal(handler)   { this.#onFinal = handler; }
+  onError(handler)   { this.#onError = handler; }
+  onEnd(handler)     { this.#onEnd = handler; }
+}

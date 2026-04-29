@@ -30,10 +30,23 @@ export function ModeSelection({ onChoose }) {
             onClick={() => onChoose(InputMode.CLOVA_STT)}
           >
             <span className="mode-card-icon">🎙️</span>
-            <span className="mode-card-title">네이버 클로바 음성 인식</span>
+            <span className="mode-card-title">네이버 클로바 음성 인식 (정확)</span>
             <span className="mode-card-desc">
-              마이크에 말하면 클로바 STT가 한국어로 받아써 줍니다.
-              한 번에 최대 60초까지 녹음할 수 있어요.
+              녹음 → 정지 후 클로바 STT가 한국어로 받아써 줍니다.
+              한 번에 최대 60초, 보내기 전에 직접 다듬을 수 있어요.
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="mode-card"
+            onClick={() => onChoose(InputMode.BROWSER_LIVE)}
+          >
+            <span className="mode-card-icon">⚡</span>
+            <span className="mode-card-title">실시간 자막 (브라우저)</span>
+            <span className="mode-card-desc">
+              말씀하시는 동안 문장이 끝날 때마다 TV에 자동으로 표시됩니다.
+              Chrome / Edge 전용. (네이버 클로바가 아닌 브라우저 내장 엔진을 사용합니다.)
             </span>
           </button>
         </div>

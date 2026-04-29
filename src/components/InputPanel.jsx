@@ -4,6 +4,7 @@ import { InputMode } from '../domain/InputMode.js';
 import { useCaptionSession } from '../hooks/useCaptionSession.js';
 import { ManualInputArea } from './inputs/ManualInputArea.jsx';
 import { SttInputArea } from './inputs/SttInputArea.jsx';
+import { LiveSttInputArea } from './inputs/LiveSttInputArea.jsx';
 import './InputPanel.css';
 
 function SentMessage({ message }) {
@@ -85,8 +86,13 @@ export function InputPanel({ inputMode, onChangeInputMode }) {
     setShowClearConfirm(false);
   };
 
-  const inputModeLabel =
-    inputMode === InputMode.CLOVA_STT ? '🎙️ 음성 인식' : '⌨️ 직접 타자';
+  const inputModeLabel = (() => {
+    switch (inputMode) {
+      case InputMode.CLOVA_STT:    return '🎙️ 클로바 STT';
+      case InputMode.BROWSER_LIVE: return '⚡ 실시간 자막';
+      default:                     return '⌨️ 직접 타자';
+    }
+  })();
 
   return (
     <div className="input-panel">
@@ -125,9 +131,13 @@ export function InputPanel({ inputMode, onChangeInputMode }) {
 
         {messageType === MessageType.CONTEXT && <ContextHint />}
 
-        {inputMode === InputMode.CLOVA_STT ? (
+        {inputMode === InputMode.CLOVA_STT && (
           <SttInputArea messageType={messageType} onSubmit={submit} />
-        ) : (
+        )}
+        {inputMode === InputMode.BROWSER_LIVE && (
+          <LiveSttInputArea messageType={messageType} onSubmit={submit} />
+        )}
+        {inputMode === InputMode.MANUAL && (
           <ManualInputArea messageType={messageType} onSubmit={submit} />
         )}
 
