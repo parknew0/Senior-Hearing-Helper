@@ -297,3 +297,136 @@
   25%       { transform: translateX(-4px); }
   75%       { transform: translateX(4px); }
 }
+
+/* ─── Header meta (mode pill + tv link) ─── */
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  overflow: hidden;
+}
+
+.input-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid #1E293B;
+  background: rgba(99, 102, 241, 0.08);
+  color: #C7D2FE;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.input-mode-pill:hover {
+  border-color: #6366F1;
+  background: rgba(99, 102, 241, 0.18);
+  color: #E0E7FF;
+}
+
+.input-mode-pill-edit {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94A3B8;
+  text-decoration: underline;
+}
+
+/* ─── STT input area ─── */
+.stt-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stt-status-row {
+  display: flex;
+  align-items: center;
+  min-height: 1.25rem;
+}
+
+.stt-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.stt-status--idle      { color: #64748B; }
+.stt-status--recording { color: #EF4444; }
+.stt-status--processing{ color: #F59E0B; }
+
+.stt-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #EF4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  animation: sttPulse 1.2s infinite;
+}
+
+@keyframes sttPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);   }
+  100% { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0);   }
+}
+
+.stt-btn--record { background: #DC2626; }
+.stt-btn--record:hover:not(:disabled) { background: #B91C1C; }
+
+.stt-btn--stop { background: #475569; }
+.stt-btn--stop:hover:not(:disabled) { background: #334155; }
+
+.stt-btn--send { flex: 1; }
+
+.stt-action-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.stt-cancel {
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #94A3B8;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.stt-cancel:hover {
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+.stt-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #FCA5A5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.5rem;
+  word-break: keep-all;
+}
+
+.stt-error-close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #FCA5A5;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+}

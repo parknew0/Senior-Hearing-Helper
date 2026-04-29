@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageType } from '../domain/MessageType.js';
+import { InputMode } from '../domain/InputMode.js';
 import { useCaptionSession } from '../hooks/useCaptionSession.js';
+import { ManualInputArea } from './inputs/ManualInputArea.jsx';
+import { SttInputArea } from './inputs/SttInputArea.jsx';
 import './InputPanel.css';
 
 function SentMessage({ message }) {
@@ -35,17 +38,17 @@ function MessageHistory({ messages }) {
   );
 }
 
-function ModeToggle({ mode, onChange }) {
+function MessageTypeToggle({ messageType, onChange }) {
   return (
-    <div className="mode-toggle" role="group" aria-label="입력 모드 선택">
+    <div className="mode-toggle" role="group" aria-label="메시지 종류 선택">
       <button
-        className={`mode-btn ${mode === MessageType.CAPTION ? 'active' : ''}`}
+        className={`mode-btn ${messageType === MessageType.CAPTION ? 'active' : ''}`}
         onClick={() => onChange(MessageType.CAPTION)}
       >
         💬 대화
       </button>
       <button
-        className={`mode-btn ${mode === MessageType.CONTEXT ? 'active' : ''}`}
+        className={`mode-btn ${messageType === MessageType.CONTEXT ? 'active' : ''}`}
         onClick={() => onChange(MessageType.CONTEXT)}
       >
         📌 상황 설명
@@ -62,29 +65,15 @@ function ContextHint() {
   );
 }
 
-export function InputPanel() {
+export function InputPanel({ inputMode, onChangeInputMode }) {
   const { messages, sendCaption, sendContext, clearAll } = useCaptionSession();
-  const [text, setText] = useState('');
-  const [mode, setMode] = useState(MessageType.CAPTION);
+  const [messageType, setMessageType] = useState(MessageType.CAPTION);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const textareaRef = useRef(null);
-  const isComposingRef = useRef(false);
 
   const displayUrl = `${window.location.origin}/?view=display`;
 
-  const handleSend = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    mode === MessageType.CAPTION ? sendCaption(trimmed) : sendContext(trimmed);
-    setText('');
-    textareaRef.current?.focus();
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
-      e.preventDefault();
-      handleSend();
-    }
+  const submit = (text) => {
+    messageType === MessageType.CAPTION ? sendCaption(text) : sendContext(text);
   };
 
   const handleClear = () => {
@@ -96,6 +85,9 @@ export function InputPanel() {
     setShowClearConfirm(false);
   };
 
+  const inputModeLabel =
+    inputMode === InputMode.CLOVA_STT ? '🎙️ 음성 인식' : '⌨️ 직접 타자';
+
   return (
     <div className="input-panel">
       <header className="panel-header">
@@ -103,51 +95,41 @@ export function InputPanel() {
           <span className="brand-icon">🔊</span>
           <h1 className="brand-name">MirrorTalk</h1>
         </div>
-        <div className="tv-link-group">
-          <span className="tv-label">TV 화면</span>
-          <a
-            className="tv-url"
-            href={displayUrl}
-            target="_blank"
-            rel="noreferrer"
+        <div className="header-meta">
+          <button
+            type="button"
+            className="input-mode-pill"
+            onClick={onChangeInputMode}
+            title="입력 방식을 다시 고릅니다"
           >
-            {displayUrl}
-          </a>
+            {inputModeLabel} <span className="input-mode-pill-edit">변경</span>
+          </button>
+          <div className="tv-link-group">
+            <span className="tv-label">TV 화면</span>
+            <a
+              className="tv-url"
+              href={displayUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {displayUrl}
+            </a>
+          </div>
         </div>
       </header>
 
       <MessageHistory messages={messages} />
 
       <footer className="input-footer">
-        <ModeToggle mode={mode} onChange={setMode} />
+        <MessageTypeToggle messageType={messageType} onChange={setMessageType} />
 
-        {mode === MessageType.CONTEXT && <ContextHint />}
+        {messageType === MessageType.CONTEXT && <ContextHint />}
 
-        <div className="input-row">
-          <textarea
-            ref={textareaRef}
-            className="text-input"
-            placeholder={
-              mode === MessageType.CAPTION
-                ? '대화 내용 입력 (Enter로 전송 / Shift+Enter 줄바꿈)'
-                : '지금 어떤 이야기를 하고 있는지 설명해 주세요'
-            }
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onCompositionStart={() => { isComposingRef.current = true; }}
-            onCompositionEnd={() => { isComposingRef.current = false; }}
-            onKeyDown={handleKeyDown}
-            rows={2}
-            autoFocus
-          />
-          <button
-            className="send-btn"
-            onClick={handleSend}
-            disabled={!text.trim()}
-          >
-            전송
-          </button>
-        </div>
+        {inputMode === InputMode.CLOVA_STT ? (
+          <SttInputArea messageType={messageType} onSubmit={submit} />
+        ) : (
+          <ManualInputArea messageType={messageType} onSubmit={submit} />
+        )}
 
         {messages.length > 0 && (
           <button

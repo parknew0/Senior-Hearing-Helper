@@ -1,0 +1,99 @@
+.mode-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  background: #0D1117;
+  color: #E2E8F0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Noto Sans KR', 'Segoe UI', sans-serif;
+  padding: 1.5rem;
+}
+
+.mode-selection-inner {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mode-selection-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mode-selection-header .brand-icon {
+  font-size: 2rem;
+}
+
+.mode-selection-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  letter-spacing: -0.02em;
+}
+
+.mode-selection-header p {
+  margin: 0.25rem 0 0;
+  color: #94A3B8;
+  font-size: 0.9375rem;
+}
+
+.mode-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.125rem 1.25rem;
+  border-radius: 0.875rem;
+  border: 1px solid #1E293B;
+  background: #161B22;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: #6366F1;
+  background: #1A2030;
+}
+
+.mode-card:active {
+  transform: scale(0.99);
+}
+
+.mode-card-icon {
+  font-size: 1.5rem;
+}
+
+.mode-card-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #F1F5F9;
+}
+
+.mode-card-desc {
+  font-size: 0.875rem;
+  color: #94A3B8;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.mode-selection-footnote {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #475569;
+  margin: 0;
+}
